@@ -3,8 +3,6 @@ struct Token<'a> {
     val: TokenType
 }
 
-
-
 pub enum TokenType {
     INC, // + Increment
     DEC, // - Decrement
