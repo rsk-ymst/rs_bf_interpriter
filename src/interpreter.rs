@@ -49,7 +49,7 @@ impl MemManager {
     pub fn show_head_char(&self) {
         Self::print_current_status(&self);
 
-        println!("{}", self.mem[self.head] as char);
+        print!("{}", self.mem[self.head] as char);
     }
 
     pub fn is_current_cell_alive(&self) -> bool {
@@ -116,22 +116,21 @@ impl Interpreter {
                 '<' => memory_manager.move_left(),
                 '.' => memory_manager.show_head_char(),
                 '[' => {
-                    let start_loop_index = cursor;
-                    let end_loop_index = match Self::search_pair_elements(&tokens[cursor..tokens.len()]) {
+                    let (start_loop_index, end_loop_index) = match Self::search_pair_elements_v2(cursor, &tokens[cursor..tokens.len()]) {
                         Ok(end) => end,
                         Err(e) => return Err(e),
-                    } + start_loop_index;
+                    };
 
                     loop {
                         if !memory_manager.is_current_cell_alive() {
-                            println!("break!!!");
+                            // println!("break!!!");
                             break;
                         }
 
                         Interpreter::consume_v2(&mut tokens[start_loop_index+1..end_loop_index].to_vec(), memory_manager)?;
                     }
 
-                    cursor = end_loop_index+2;
+                    cursor = end_loop_index+1;
                     continue;
                 },
                 ']' => {println!("something is wrong"); ()},
@@ -144,32 +143,71 @@ impl Interpreter {
 
     }
 
+    // pub fn search_pair_elements(slice: &[u8]) -> Result<(usize, usize), String> {
+    //     let mut ret = 0;
 
-    pub fn search_pair_elements(slice: &[u8]) -> Result<(usize, usize), String> {
-        let mut ret = 0;
+    //     slice.into_iter().enumerate().for_each(|(index, x)| {
+    //         let mut target = match Self::ascii_to_char(*x) {
+    //             Ok(char_str) => char_str,
+    //             Err(e) => return (),
+    //         };
 
-        slice.into_iter().enumerate().for_each(|(index, x)| {
-            let mut target = match Self::ascii_to_char(*x) {
-                Ok(char_str) => char_str,
-                Err(e) => return (),
+    //         match target {
+    //             ']' => {
+    //                 ret = index;
+    //                 return;
+    //             },
+    //             _ => ()
+    //         }
+    //     });
+
+    //     if ret == 0 {
+    //         println!("xxxxxxxxxxxx!!");
+    //         return Err(format!("error"));
+    //     }
+
+    //     println!("] is at {ret}");
+    //     Ok(ret)
+    // }
+
+
+    pub fn search_pair_elements_v2(start: usize, slice: &[u8]) -> Result<(usize, usize), String> {
+        let mut end = 0;
+        let mut cursor: usize = 0;
+
+        loop {
+            if cursor >= slice.len() {
+                return Ok(format!("ok"))
+            }
+
+            let target = match Self::ascii_to_char(slice[cursor]) {
+                Ok(c) => c,
+                Err(e) => return Err(e),
             };
 
             match target {
+                '[' => {
+                    // ここでflag建てる
+                }
                 ']' => {
-                    ret = index;
-                    return;
+                    // flag立ってたらcontinue, そうでなければflagをfalseにして以下の処理。
+                    end = cursor;
+                    break;
                 },
                 _ => ()
             }
-        });
 
-        if ret == 0 {
+            cursor += 1;
+        };
+
+        if end == 0 {
             println!("xxxxxxxxxxxx!!");
             return Err(format!("error"));
         }
 
-        println!("] is at {ret}");
-        Ok(ret)
+        // println!("] is at {end}");
+
+        Ok((start, end+start))
     }
 
     fn ascii_to_char(x: u8) -> Result<char, String> {
