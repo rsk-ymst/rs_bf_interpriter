@@ -1,4 +1,4 @@
-use std::{fmt::{Error, format}, ops::Index, io};
+use std::{fmt::{Error, format}, ops::Index, io::{self, stdin, BufRead}};
 
 
 pub struct MemManager {
@@ -23,6 +23,7 @@ impl MemManager {
     pub fn dec (&mut self) {
         // print!("-");
         // println!("current: {} {}", self.head, self.mem[self.head]);
+        if self.mem[self.head] <= 0 {return;}
 
         self.mem[self.head] -= 1;
         Self::print_current_status(&self, '-');
@@ -44,9 +45,27 @@ impl MemManager {
         Self::print_current_status(&self, '<');
     }
 
+    pub fn stdin (&mut self) {
+        print!("input: ");
+
+        let mut c = String::new();
+
+        io::stdin()
+            .read_line(&mut c)
+            .expect("Failed to read line");
+
+        println!("\n\n{}", c);
+        // println!("{}", &line.into_bytes()[0]);
+
+        self.mem[self.head] = c.into_bytes()[0];
+
+        // print!("<");
+        Self::print_current_status(&self, ',');
+    }
+
     pub fn show_head_char(&self) {
         // Self::print_current_status(&self, '.');
-        print!("{}", self.mem[self.head] as char);
+        print!("\n{}\n", self.mem[self.head] as char);
         Self::print_current_status(&self, '.');
     }
 
@@ -99,7 +118,8 @@ impl Interpreter {
         while cursor < tokens.len() {
             let target = Self::ascii_to_char(tokens[cursor])?;
 
-            print!("{cursor} | {target} => ");
+            print!("{cursor} | {target} ");
+            // println!("{target}");
 
             match target {
                 '+' => memory_manager.inc(),
@@ -107,9 +127,14 @@ impl Interpreter {
                 '>' => memory_manager.move_right(),
                 '<' => memory_manager.move_left(),
                 '.' => memory_manager.show_head_char(),
+                ',' => memory_manager.stdin(),
                 '[' => {
                     let (start_loop_index, _end_loop_index) = Self::search_pair_elements_v2(cursor, &tokens[cursor+1..tokens.len()])?;
-                    loop_stack.push(start_loop_index);
+
+                    if !loop_stack.contains(&start_loop_index) {
+                        loop_stack.push(start_loop_index);
+                    }
+                    // println!("push {:?}", loop_stack);
 
                     // if !memory_manager.is_current_cell_alive() {
                     //     cursor = end_loop_index + 1;
@@ -128,10 +153,11 @@ impl Interpreter {
                     } else {
                         // ループを抜ける。対象のidxは削除
                         loop_stack.pop();
+                        // println!("pop {:?}", loop_stack);
                     }
 
                     memory_manager.print_current_status(']');
-                    println!("jump back -------------");
+                    // println!("jump back -------------");
                 },
                 _ => {}
             }
