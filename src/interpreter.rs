@@ -16,46 +16,46 @@ impl MemManager {
     }
 
     pub fn inc (&mut self) {
-        Self::print_current_status(&self);
         self.mem[self.head] += 1;
+        Self::print_current_status(&self, '+');
     }
 
     pub fn dec (&mut self) {
-        Self::print_current_status(&self);
         // print!("-");
         // println!("current: {} {}", self.head, self.mem[self.head]);
 
         self.mem[self.head] -= 1;
+        Self::print_current_status(&self, '-');
     }
 
     pub fn move_right (&mut self) {
-        Self::print_current_status(&self);
         // println!("current: {} {}", self.head, self.mem[self.head]);
 
         // print!(">");
         self.head += 1;
+        Self::print_current_status(&self, '>');
     }
 
     pub fn move_left (&mut self) {
-        Self::print_current_status(&self);
         // println!("current: {} {}", self.head, self.mem[self.head]);
 
         // print!("<");
         self.head -= 1;
+        Self::print_current_status(&self, '<');
     }
 
     pub fn show_head_char(&self) {
-        Self::print_current_status(&self);
-
+        // Self::print_current_status(&self, '.');
         print!("{}", self.mem[self.head] as char);
+        Self::print_current_status(&self, '.');
     }
 
     pub fn is_current_cell_alive(&self) -> bool {
         self.mem[self.head] > 0
     }
 
-    fn print_current_status(&self) {
-        // println!("current: {} {}\n----------------------", self.head, self.mem[self.head]);
+    fn print_current_status(&self, _token: char) {
+        println!("head: {} cell: {}", self.head, self.mem[self.head]);
     }
 }
 
@@ -93,9 +93,13 @@ impl Interpreter {
 
     pub fn consume_v2(tokens: &mut Vec<u8>, memory_manager: &mut MemManager) -> Result<String, String> {
         let mut cursor: usize = 0;
+        let mut current_start_loop_index = 0;
+        let mut loop_stack: Vec<usize> = Vec::new();
 
         while cursor < tokens.len() {
             let target = Self::ascii_to_char(tokens[cursor])?;
+
+            print!("{cursor} | {target} => ");
 
             match target {
                 '+' => memory_manager.inc(),
@@ -104,22 +108,32 @@ impl Interpreter {
                 '<' => memory_manager.move_left(),
                 '.' => memory_manager.show_head_char(),
                 '[' => {
-                    let (start_loop_index, end_loop_index) = Self::search_pair_elements_v2(cursor, &tokens[cursor+1..tokens.len()])?;
+                    let (start_loop_index, _end_loop_index) = Self::search_pair_elements_v2(cursor, &tokens[cursor+1..tokens.len()])?;
+                    loop_stack.push(start_loop_index);
 
-                    while memory_manager.is_current_cell_alive() {
-                        // if !memory_manager.is_current_cell_alive() {
-                        //     // println!("break!!!");
-                        //     break;
-                        // }
+                    // if !memory_manager.is_current_cell_alive() {
+                    //     cursor = end_loop_index + 1;
+                    // } else {
+                    //     current_start_loop_index = start_loop_index;
+                    // }
 
-                        Interpreter::consume_v2(&mut tokens[start_loop_index+1..end_loop_index].to_vec(), memory_manager)?;
+                    memory_manager.print_current_status('[');
+                },
+                ']' => {
+                    if memory_manager.is_current_cell_alive() {
+                        // スタック末尾のインデックスを参照し、ループの先頭に戻る
+                        if let Some(target_start_index) = loop_stack.get(loop_stack.len() - 1) {
+                            cursor = *target_start_index;
+                        }
+                    } else {
+                        // ループを抜ける。対象のidxは削除
+                        loop_stack.pop();
                     }
 
-                    cursor = end_loop_index+1;
-                    continue;
+                    memory_manager.print_current_status(']');
+                    println!("jump back -------------");
                 },
-                ']' => {println!("something is wrong"); ()},
-                _ => ()
+                _ => {}
             }
 
             cursor += 1;
