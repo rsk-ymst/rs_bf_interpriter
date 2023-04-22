@@ -17,8 +17,6 @@ impl MemManager {
 
     pub fn inc (&mut self) {
         Self::print_current_status(&self);
-        // print!("+");
-        // println!("current: {} {}", self.head, self.mem[self.head]);
         self.mem[self.head] += 1;
     }
 
@@ -57,13 +55,11 @@ impl MemManager {
     }
 
     fn print_current_status(&self) {
-        println!("current: {} {}\n----------------------", self.head, self.mem[self.head]);
+        // println!("current: {} {}\n----------------------", self.head, self.mem[self.head]);
     }
 }
 
-pub struct Interpreter {
-
-}
+pub struct Interpreter;
 
 impl Interpreter {
     // pub fn consume(tokens: &mut Vec<u8>, memory_manager: &mut MemManager) {
@@ -98,16 +94,8 @@ impl Interpreter {
     pub fn consume_v2(tokens: &mut Vec<u8>, memory_manager: &mut MemManager) -> Result<String, String> {
         let mut cursor: usize = 0;
 
-        loop {
-            if cursor >= tokens.len() {
-                return Ok(format!("ok"))
-            }
-
-            let target = match Self::ascii_to_char(tokens[cursor]) {
-                Ok(c) => c,
-                Err(e) => return Err(e),
-            };
-
+        while cursor < tokens.len() {
+            let target = Self::ascii_to_char(tokens[cursor])?;
 
             match target {
                 '+' => memory_manager.inc(),
@@ -116,16 +104,13 @@ impl Interpreter {
                 '<' => memory_manager.move_left(),
                 '.' => memory_manager.show_head_char(),
                 '[' => {
-                    let (start_loop_index, end_loop_index) = match Self::search_pair_elements_v2(cursor, &tokens[cursor..tokens.len()]) {
-                        Ok(end) => end,
-                        Err(e) => return Err(e),
-                    };
+                    let (start_loop_index, end_loop_index) = Self::search_pair_elements_v2(cursor, &tokens[cursor+1..tokens.len()])?;
 
-                    loop {
-                        if !memory_manager.is_current_cell_alive() {
-                            // println!("break!!!");
-                            break;
-                        }
+                    while memory_manager.is_current_cell_alive() {
+                        // if !memory_manager.is_current_cell_alive() {
+                        //     // println!("break!!!");
+                        //     break;
+                        // }
 
                         Interpreter::consume_v2(&mut tokens[start_loop_index+1..end_loop_index].to_vec(), memory_manager)?;
                     }
@@ -137,77 +122,54 @@ impl Interpreter {
                 _ => ()
             }
 
-            println!("cursor: {cursor}, token: {target}");
             cursor += 1;
         }
 
+        Ok(format!("Ok"))
     }
-
-    // pub fn search_pair_elements(slice: &[u8]) -> Result<(usize, usize), String> {
-    //     let mut ret = 0;
-
-    //     slice.into_iter().enumerate().for_each(|(index, x)| {
-    //         let mut target = match Self::ascii_to_char(*x) {
-    //             Ok(char_str) => char_str,
-    //             Err(e) => return (),
-    //         };
-
-    //         match target {
-    //             ']' => {
-    //                 ret = index;
-    //                 return;
-    //             },
-    //             _ => ()
-    //         }
-    //     });
-
-    //     if ret == 0 {
-    //         println!("xxxxxxxxxxxx!!");
-    //         return Err(format!("error"));
-    //     }
-
-    //     println!("] is at {ret}");
-    //     Ok(ret)
-    // }
-
 
     pub fn search_pair_elements_v2(start: usize, slice: &[u8]) -> Result<(usize, usize), String> {
         let mut end = 0;
         let mut cursor: usize = 0;
 
-        loop {
-            if cursor >= slice.len() {
-                return Ok(format!("ok"))
-            }
+        let mut stack: Vec<bool> = Vec::new();
+        // println!("stack: {}", stack.len());
 
-            let target = match Self::ascii_to_char(slice[cursor]) {
-                Ok(c) => c,
-                Err(e) => return Err(e),
-            };
+        while cursor < slice.len() {
+            // if cursor >= slice.len() {
+            //     return Ok(format!("ok"))
+            // }
+
+            let target = Self::ascii_to_char(slice[cursor])?;
+
+            // println!("target: {target}");
 
             match target {
                 '[' => {
-                    // ここでflag建てる
+                    stack.push(true);
                 }
                 ']' => {
-                    // flag立ってたらcontinue, そうでなければflagをfalseにして以下の処理。
-                    end = cursor;
-                    break;
-                },
+                    if stack.len() == 0 {
+                        // println!("stack is emp");
+                        end = cursor;
+                        break;
+                    }
+
+                    stack.pop();
+                }
                 _ => ()
             }
 
             cursor += 1;
-        };
+        }
 
         if end == 0 {
-            println!("xxxxxxxxxxxx!!");
+            // println!("xxxxxxxxxxxx!!");
             return Err(format!("error"));
         }
 
-        // println!("] is at {end}");
-
-        Ok((start, end+start))
+        // println!("st: {start}, en: {}", end+start+1);
+        Ok((start, end+start+1)) // endはゼロオリジンだから+1する必要がある。
     }
 
     fn ascii_to_char(x: u8) -> Result<char, String> {
