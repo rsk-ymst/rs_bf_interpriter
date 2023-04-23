@@ -8,7 +8,7 @@ fn main() {
     let mut contents_ascii_vec: Vec<u8> = Vec::new();
 
     let mut file = File::open(filename).expect("file not found...");
-    file.read_to_end(&mut contents_ascii_vec).expect("something went wrong reading the file");
+    file.read_to_end(&mut contents_ascii_vec).expect("file error");
 
     // println!("size: {:?}", contents_ascii_vec.len());
 
